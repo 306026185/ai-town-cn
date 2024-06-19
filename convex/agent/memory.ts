@@ -42,9 +42,10 @@ export async function rememberConversation(
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
-      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
-      like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
-      "I," and add if you liked or disliked this interaction.`,
+      content: `你是${player.name}，刚与${otherPlayer.name} 结束了一次谈话。 我希望你能从 ${player.name} 的角度总结这次对话，使用第一人称代词”我”，并说明你喜欢或不喜欢这次交流。`,
+      // content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
+      // like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
+      // "I," and add if you liked or disliked this interaction.`,
     },
   ];
   const authors = new Set<GameId<'players'>>();
@@ -62,9 +63,9 @@ export async function rememberConversation(
     messages: llmMessages,
     max_tokens: 500,
   });
-  const description = `Conversation with ${otherPlayer.name} at ${new Date(
+  const description = `和${otherPlayer.name}在${new Date(
     data.conversation._creationTime,
-  ).toLocaleString()}: ${content}`;
+  ).toLocaleString()}的对话: ${content}`;
   const importance = await calculateImportance(description);
   const { embedding } = await fetchEmbedding(description);
   authors.delete(player.id as GameId<'players'>);
@@ -248,9 +249,9 @@ async function calculateImportance(description: string) {
     messages: [
       {
         role: 'user',
-        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
-      Memory: ${description}
-      Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
+        content: `在0到9的尺度上，其中0是纯粹平凡的（例如刷牙、整理床铺），而9则是极其动人的（例如分手、大学录取）。请评价以下记忆片段可能的动人程度。
+      记忆片段: ${description}
+      答案是从0到9的范围。只回复数字，例如"5"。`,
       },
     ],
     temperature: 0.0,
@@ -347,17 +348,25 @@ async function reflectOnMemories(
   }
   console.debug('sum of importance score = ', sumOfImportanceScore);
   console.debug('Reflecting...');
-  const prompt = ['[no prose]', '[Output only JSON]', `You are ${name}, statements about you:`];
+  const prompt = ['[no prose]', '[请仅输出JSON]', `你是${name}，关于你的说法：`];
   memories.forEach((m, idx) => {
-    prompt.push(`Statement ${idx}: ${m.description}`);
+    prompt.push(`陈述 ${idx}: ${m.description}`);
+    // prompt.push(`Statement ${idx}: ${m.description}`);
   });
-  prompt.push('What 3 high-level insights can you infer from the above statements?');
+  prompt.push('你可以从上述陈述中推断出哪三个高层次的见解？');
+  // prompt.push('What 3 high-level insights can you infer from the above statements?');
   prompt.push(
-    'Return in JSON format, where the key is a list of input statements that contributed to your insights and value is your insight. Make the response parseable by Typescript JSON.parse() function. DO NOT escape characters or include "\n" or white space in response.',
+    '以JSON格式返回，其中键是促成您的见解的输入语句列表，值是您的见解。让响应可以被Typescript的JSON.parse()函数解析。不要在响应中转义字符或包含"\n"或空白。',
   );
+  // prompt.push(
+  //   'Return in JSON format, where the key is a list of input statements that contributed to your insights and value is your insight. Make the response parseable by Typescript JSON.parse() function. DO NOT escape characters or include "\n" or white space in response.',
+  // );
   prompt.push(
-    'Example: [{insight: "...", statementIds: [1,2]}, {insight: "...", statementIds: [1]}, ...]',
+    '例如: [{见解: "...", 声明IDs: [1,2]}, {见解: "...", 声明IDs: [1]}, ...]',
   );
+  // prompt.push(
+  //   'Example: [{insight: "...", statementIds: [1,2]}, {insight: "...", statementIds: [1]}, ...]',
+  // );
 
   const { content: reflection } = await chatCompletion({
     messages: [
